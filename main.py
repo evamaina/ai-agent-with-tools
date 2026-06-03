@@ -8,16 +8,47 @@ client = OpenAI()
 
 
 def ask_ai(user_message):
-    if user_message.startswith("calculate "):
-        expression = user_message.replace("calculate ", "")
-        return calculator(expression)
+    prompt = f"""
+You are an AI agent.
+
+You can either:
+1. Answer normally
+2. Use the calculator tool
+
+If the user asks for math, respond exactly like this:
+TOOL: calculator
+INPUT: the math expression only
+
+User message: {user_message}
+"""
 
     response = client.responses.create(
         model="gpt-4.1-mini",
-        input=user_message
+        input=prompt
     )
 
-    return response.output_text
+    ai_response = response.output_text.strip()
+
+    if ai_response.startswith("TOOL: calculator"):
+        expression = ai_response.split("INPUT:")[1].strip()
+        tool_result = calculator(expression)
+
+        final_prompt = f"""
+The user asked: {user_message}
+
+The calculator result is: {tool_result}
+
+Give the final answer to the user clearly.
+"""
+
+        final_response = client.responses.create(
+            model="gpt-4.1-mini",
+            input=final_prompt
+        )
+
+        return final_response.output_text
+
+    return ai_response
 
 
 def main():
