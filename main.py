@@ -1,6 +1,6 @@
 from openai import OpenAI
 from dotenv import load_dotenv
-from tools import calculator, save_note, read_notes
+from tools import run_tool
 
 load_dotenv()
 
@@ -8,42 +8,43 @@ client = OpenAI()
 
 
 def ask_ai(user_message):
+
     prompt = f"""
-    You are an AI agent.
+You are an AI agent.
 
-    Available tools:
+Available tools:
 
-    calculator:
-    Use for math.
+calculator:
+Use for math.
 
-    save_note:
-    Use when user wants to remember, save, store or note something.
+save_note:
+Use when user wants to remember, save, store or note something.
 
-    read_notes:
-    Use when user asks what has been saved before.
+read_notes:
+Use when user asks what has been saved before.
 
-    Rules:
+Rules:
 
-    For calculator:
+For calculator:
 
-    TOOL: calculator
-    INPUT: expression
+TOOL: calculator
+INPUT: expression
 
-    For save_note:
+For save_note:
 
-    TOOL: save_note
-    INPUT: note content
+TOOL: save_note
+INPUT: note content
 
-    For read_notes:
+For read_notes:
 
-    TOOL: read_notes
-    INPUT: none
+TOOL: read_notes
+INPUT: none
 
-    Otherwise answer normally.
+Otherwise answer normally.
 
-    User message:
-    {user_message}
-    """
+User message:
+{user_message}
+"""
 
     response = client.responses.create(
         model="gpt-4.1-mini",
@@ -52,29 +53,26 @@ def ask_ai(user_message):
 
     ai_response = response.output_text.strip()
 
-    tool_result = None
+    if ai_response.startswith("TOOL:"):
+        lines = ai_response.splitlines()
 
-    if ai_response.startswith("TOOL: calculator"):
-        expression = ai_response.split("INPUT:")[1].strip()
-        tool_result = calculator(expression)
+        tool_name = lines[0].replace("TOOL:", "").strip()
+        tool_input = lines[1].replace("INPUT:", "").strip()
 
-    elif ai_response.startswith("TOOL: save_note"):
-        note = ai_response.split("INPUT:")[1].strip()
-        tool_result = save_note(note)
+        tool_result = run_tool(tool_name, tool_input)
 
-    elif ai_response.startswith("TOOL: read_notes"):
-        tool_result = read_notes()
-
-    if tool_result is not None:
         final_prompt = f"""
-    User request:
-    {user_message}
+User request:
+{user_message}
 
-    Tool output:
-    {tool_result}
+Tool used:
+{tool_name}
 
-    Create the final response.
-    """
+Tool output:
+{tool_result}
+
+Create the final response.
+"""
 
         final_response = client.responses.create(
             model="gpt-4.1-mini",
@@ -97,6 +95,7 @@ def main():
             break
 
         answer = ask_ai(user_message)
+
         print(f"\nAgent: {answer}")
 
 
