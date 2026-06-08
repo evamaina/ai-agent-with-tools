@@ -2,6 +2,7 @@ from openai import OpenAI
 from dotenv import load_dotenv
 from tools import run_tool
 from agent.prompts import AGENT_PROMPT
+from memory import load_conversation_history, save_conversation_history
 
 load_dotenv()
 
@@ -74,7 +75,7 @@ Create the final response.
 def main():
     print("AI Agent started. Type 'exit' to quit.")
 
-    conversation_history = []
+    conversation_history = load_conversation_history()
 
     while True:
         user_message = input("\nYou: ")
@@ -94,6 +95,8 @@ def main():
             "role": "agent",
             "content": answer
         })
+        
+        save_conversation_history(conversation_history)
 
         print(f"\nAgent: {answer}")
 
