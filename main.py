@@ -8,9 +8,27 @@ load_dotenv()
 client = OpenAI()
 
 
-def ask_ai(user_message):
+def format_history(conversation_history):
+    if not conversation_history:
+        return "No previous conversation."
 
-    prompt = AGENT_PROMPT.format(user_message=user_message)
+    formatted = ""
+
+    for message in conversation_history:
+        role = message["role"]
+        content = message["content"]
+        formatted += f"{role}: {content}\n"
+
+    return formatted
+
+
+def ask_ai(user_message, conversation_history):
+    history_text = format_history(conversation_history)
+
+    prompt = AGENT_PROMPT.format(
+        user_message=user_message,
+        conversation_history=history_text
+    )
 
     response = client.responses.create(
         model="gpt-4.1-mini",
@@ -28,6 +46,9 @@ def ask_ai(user_message):
         tool_result = run_tool(tool_name, tool_input)
 
         final_prompt = f"""
+Previous conversation:
+{history_text}
+
 User request:
 {user_message}
 
@@ -53,6 +74,8 @@ Create the final response.
 def main():
     print("AI Agent started. Type 'exit' to quit.")
 
+    conversation_history = []
+
     while True:
         user_message = input("\nYou: ")
 
@@ -60,7 +83,17 @@ def main():
             print("Goodbye!")
             break
 
-        answer = ask_ai(user_message)
+        answer = ask_ai(user_message, conversation_history)
+
+        conversation_history.append({
+            "role": "user",
+            "content": user_message
+        })
+
+        conversation_history.append({
+            "role": "agent",
+            "content": answer
+        })
 
         print(f"\nAgent: {answer}")
 

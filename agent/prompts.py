@@ -54,6 +54,9 @@ INPUT: sample.txt
 
 Otherwise answer normally.
 
-User message:
+Previous conversation:
+{conversation_history}
+
+Current user message:
 {user_message}
 """
