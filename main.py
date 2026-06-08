@@ -1,8 +1,12 @@
 from openai import OpenAI
 from dotenv import load_dotenv
+
 from tools import run_tool
+from memory import (
+    load_conversation_history,
+    save_conversation_history
+)
 from agent.prompts import AGENT_PROMPT
-from memory import load_conversation_history, save_conversation_history
 
 load_dotenv()
 
@@ -18,17 +22,19 @@ def format_history(conversation_history):
     for message in conversation_history:
         role = message["role"]
         content = message["content"]
+
         formatted += f"{role}: {content}\n"
 
     return formatted
 
 
 def ask_ai(user_message, conversation_history):
+
     history_text = format_history(conversation_history)
 
     prompt = AGENT_PROMPT.format(
-        user_message=user_message,
-        conversation_history=history_text
+        conversation_history=history_text,
+        user_message=user_message
     )
 
     response = client.responses.create(
@@ -39,12 +45,23 @@ def ask_ai(user_message, conversation_history):
     ai_response = response.output_text.strip()
 
     if ai_response.startswith("TOOL:"):
+
         lines = ai_response.splitlines()
 
-        tool_name = lines[0].replace("TOOL:", "").strip()
-        tool_input = lines[1].replace("INPUT:", "").strip()
+        tool_name = lines[0].replace(
+            "TOOL:",
+            ""
+        ).strip()
 
-        tool_result = run_tool(tool_name, tool_input)
+        tool_input = lines[1].replace(
+            "INPUT:",
+            ""
+        ).strip()
+
+        tool_result = run_tool(
+            tool_name,
+            tool_input
+        )
 
         final_prompt = f"""
 Previous conversation:
@@ -73,18 +90,41 @@ Create the final response.
 
 
 def main():
-    print("AI Agent started. Type 'exit' to quit.")
 
-    conversation_history = load_conversation_history()
+    print(
+        "AI Agent started. Type 'exit' to quit."
+    )
+
+    conversation_history = (
+        load_conversation_history()
+    )
 
     while True:
+
         user_message = input("\nYou: ")
 
         if user_message.lower() == "exit":
             print("Goodbye!")
             break
 
-        answer = ask_ai(user_message, conversation_history)
+        if user_message.lower() == "clear memory":
+
+            conversation_history = []
+
+            save_conversation_history(
+                conversation_history
+            )
+
+            print(
+                "\nAgent: Memory cleared."
+            )
+
+            continue
+
+        answer = ask_ai(
+            user_message,
+            conversation_history
+        )
 
         conversation_history.append({
             "role": "user",
@@ -95,10 +135,14 @@ def main():
             "role": "agent",
             "content": answer
         })
-        
-        save_conversation_history(conversation_history)
 
-        print(f"\nAgent: {answer}")
+        save_conversation_history(
+            conversation_history
+        )
+
+        print(
+            f"\nAgent: {answer}"
+        )
 
 
 if __name__ == "__main__":
