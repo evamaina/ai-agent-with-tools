@@ -23,12 +23,25 @@ def read_notes(_input=None):
         return "No notes found."
     except Exception as e:
         return f"Error reading notes: {e}"
+    
+
+def read_file(filename):
+    try:
+        with open(filename, "r") as file:
+            return file.read()
+
+    except FileNotFoundError:
+        return "File not found."
+
+    except Exception as e:
+        return f"Error reading file: {e}"
 
 
 TOOLS = {
     "calculator": calculator,
     "save_note": save_note,
     "read_notes": read_notes,
+    "read_file": read_file,
 }
 
 
